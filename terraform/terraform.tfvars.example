@@ -1,0 +1,44 @@
+# Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to Git (it's in .gitignore)
+
+##############
+# Okta Configuration
+##############
+
+okta_org_name  = "dev-12345678"           # Your Okta org name (from URL)
+okta_base_url  = "okta.com"               # Usually okta.com or oktapreview.com
+okta_api_token = "your-okta-api-token"    # Get from Okta Admin > Security > API
+
+##############
+# Azure Configuration
+##############
+
+azure_subscription_id  = "your-azure-subscription-id"
+azure_resource_group   = "your-resource-group-name"  # Must exist already
+azure_location         = "East US"
+
+##############
+# Application Settings
+##############
+
+app_name    = "okta-oidc-sample-app"
+environment = "dev"
+
+##############
+# Test Users (Optional - customize or use defaults)
+##############
+
+# test_users = [
+#   {
+#     first_name = "Alice"
+#     last_name  = "Developer"
+#     email      = "alice.developer@example.com"
+#     login      = "alice.developer@example.com"
+#   },
+#   {
+#     first_name = "Bob"
+#     last_name  = "Tester"
+#     email      = "bob.tester@example.com"
+#     login      = "bob.tester@example.com"
+#   }
+# ]
