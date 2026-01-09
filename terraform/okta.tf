@@ -1,30 +1,44 @@
-##############
-# Okta OIDC Application
-##############
-
-resource "okta_app_oauth" "oidc_app" {
-  label                      = var.app_name
-  type                       = "web"
-  grant_types                = ["authorization_code"]
-  redirect_uris              = [
-    "http://localhost:3000/authorization-code/callback",
-    "https://${var.app_name}-${var.environment}-${substr(md5(data.azurerm_resource_group.main.id), 0, 6)}.azurewebsites.net/authorization-code/callback"
-  ]
-  post_logout_redirect_uris  = [
-    "http://localhost:3000",
-    "https://${var.app_name}-${var.environment}-${substr(md5(data.azurerm_resource_group.main.id), 0, 6)}.azurewebsites.net"
-  ]
-  response_types             = ["code"]
-  consent_method             = "TRUSTED"
-  issuer_mode                = "ORG_URL"
+data "okta_auth_server" "default" {
+  name = var.auth_server_name
 }
 
-# Scopes are automatically available for OIDC apps
-# Explicit API scope grant removed due to compatibility issues
+resource "okta_app_oauth" "oidc_app" {
+  label       = var.app_name
+  type        = var.app_type
+  grant_types = var.grant_types
+  redirect_uris = [
+    "${var.local_app_url}${var.callback_path}",
+    "https://${var.app_name}-${var.environment}-${substr(md5(data.azurerm_resource_group.main.id), 0, 6)}.azurewebsites.net${var.callback_path}"
+  ]
+  post_logout_redirect_uris = [
+    var.local_app_url,
+    "https://${var.app_name}-${var.environment}-${substr(md5(data.azurerm_resource_group.main.id), 0, 6)}.azurewebsites.net"
+  ]
+  response_types = var.response_types
+  consent_method = var.consent_method
+  issuer_mode    = var.issuer_mode
+}
 
-##############
-# Test Users
-##############
+resource "okta_auth_server_policy" "app_policy" {
+  auth_server_id   = data.okta_auth_server.default.id
+  status           = var.policy_status
+  name             = var.policy_name
+  description      = var.policy_description
+  priority         = var.policy_priority
+  client_whitelist = [okta_app_oauth.oidc_app.id]
+}
+
+resource "okta_auth_server_policy_rule" "app_policy_rule" {
+  auth_server_id       = data.okta_auth_server.default.id
+  policy_id            = okta_auth_server_policy.app_policy.id
+  status               = var.policy_rule_status
+  name                 = var.policy_rule_name
+  priority             = var.policy_rule_priority
+  grant_type_whitelist = var.grant_types
+  scope_whitelist      = var.scopes
+
+  group_whitelist = [var.everyone_group_id]
+}
 
 resource "okta_user" "test_users" {
   count      = length(var.test_users)
@@ -32,19 +46,13 @@ resource "okta_user" "test_users" {
   last_name  = var.test_users[count.index].last_name
   login      = var.test_users[count.index].login
   email      = var.test_users[count.index].email
-  status     = "ACTIVE"
-
-  # Set a temporary password - users should change on first login
-  password = "TempPass123!"
+  status     = var.user_status
+  password   = var.default_user_password
 
   lifecycle {
     ignore_changes = [password]
   }
 }
-
-##############
-# Assign Users to Application (Direct Assignment - More Reliable)
-##############
 
 resource "okta_app_user" "test_user_assignments" {
   count    = length(okta_user.test_users)
@@ -53,17 +61,19 @@ resource "okta_app_user" "test_user_assignments" {
   username = okta_user.test_users[count.index].login
 }
 
-##############
-# Optional: Groups & Policies (if needed)
-##############
+resource "okta_policy_signon" "password_only" {
+  name            = var.signon_policy_name
+  status          = var.policy_status
+  description     = var.signon_policy_description
+  priority        = var.policy_priority
+  groups_included = [var.everyone_group_id]
+}
 
-# Uncomment if you want to use groups for other purposes
-# resource "okta_group" "test_users_group" {
-#   name        = "Terraform Test Users"
-#   description = "Group for test users created by Terraform"
-# }
-#
-# resource "okta_group_memberships" "test_users" {
-#   group_id = okta_group.test_users_group.id
-#   users    = okta_user.test_users[*].id
-# }
+resource "okta_policy_rule_signon" "password_only_rule" {
+  policy_id    = okta_policy_signon.password_only.id
+  name         = var.signon_rule_name
+  status       = var.policy_rule_status
+  priority     = var.policy_rule_priority
+  mfa_required = var.mfa_required
+  access       = var.policy_access
+}

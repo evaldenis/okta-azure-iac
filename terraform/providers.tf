@@ -10,16 +10,18 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 
-  # Optional: Configure backend for remote state
-  # Uncomment and configure for production
-  # backend "azurerm" {
-  #   resource_group_name  = "terraform-state-rg"
-  #   storage_account_name = "tfstate"
-  #   container_name       = "tfstate"
-  #   key                  = "okta-app.tfstate"
-  # }
+  backend "azurerm" {
+    resource_group_name  = "evaldas_tryout"
+    storage_account_name = "oktaiacstate"
+    container_name       = "tfstate"
+    key                  = "okta-oidc-app.tfstate"
+  }
 }
 
 provider "okta" {

@@ -5,31 +5,44 @@ const { ExpressOIDC } = require('@okta/oidc-middleware');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Session configuration
+// Trust the reverse proxy (Azure App Service)
+// This is required for 'cookie.secure: true' to work when SSL is terminated at the load balancer
+app.set('trust proxy', 1);
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
-  resave: true,
-  saveUninitialized: false
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }));
 
-// Okta OIDC configuration
 const oidc = new ExpressOIDC({
   issuer: process.env.OKTA_ISSUER,
   client_id: process.env.OKTA_CLIENT_ID,
   client_secret: process.env.OKTA_CLIENT_SECRET,
   appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3000',
   redirect_uri: process.env.REDIRECT_URI || 'http://localhost:3000/authorization-code/callback',
-  scope: 'openid profile email'
+  scope: 'openid profile email',
+  routes: {
+    loginCallback: {
+      afterCallback: '/profile'
+    }
+  }
 });
 
 app.use(oidc.router);
 
-// Set view engine
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
-// Home route - public
 app.get('/', (req, res) => {
+  if (req.userContext) {
+    return res.redirect('/profile');
+  }
   res.send(`
     <!DOCTYPE html>
     <html>

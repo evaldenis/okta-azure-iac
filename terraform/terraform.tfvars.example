@@ -15,7 +15,6 @@ okta_api_token = "your-okta-api-token"    # Get from Okta Admin > Security > API
 
 azure_subscription_id  = "your-azure-subscription-id"
 azure_resource_group   = "your-resource-group-name"  # Must exist already
-azure_location         = "East US"
 
 ##############
 # Application Settings

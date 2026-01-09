@@ -60,9 +60,9 @@ output "resource_group" {
 output "deployment_summary" {
   description = "Quick reference for the deployment"
   value = {
-    app_url           = "https://${azurerm_linux_web_app.app.default_hostname}"
-    okta_org          = "https://${var.okta_org_name}.${var.okta_base_url}"
-    test_user_count   = length(okta_user.test_users)
-    default_password  = "TempPass123! (change on first login)"
+    app_url          = "https://${azurerm_linux_web_app.app.default_hostname}"
+    okta_org         = "https://${var.okta_org_name}.${var.okta_base_url}"
+    test_user_count  = length(okta_user.test_users)
+    default_password = "TempPass123! (change on first login)"
   }
 }
